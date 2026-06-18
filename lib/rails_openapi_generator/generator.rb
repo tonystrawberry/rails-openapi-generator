@@ -39,7 +39,7 @@ module RailsOpenapiGenerator
       @doc_extractor    = DocCommentExtractor.new
       @render_extractor = RenderExtractor.new
       @view_locator     = ViewLocator.new(views_root: views_root)
-      @sidecar_loader   = SchemaSidecarLoader.new(report: @report)
+      @sidecar_loader   = SchemaSidecarLoader.new(report: @report, views_root: views_root)
       @jbuilder_parser  = JbuilderParser.new(views_root: views_root, sidecar_loader: @sidecar_loader)
       @views_root       = views_root
       @method_resolver  = MethodResolver.new(yard_parser: @parser)
