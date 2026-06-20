@@ -2,6 +2,9 @@
 
 Generate an OpenAPI 3.1 document for a Rails app by static source analysis. No controller code is executed.
 
+> **📖 Full documentation:** [tonystrawberry.gitbook.io/rails-openapi-generator](https://tonystrawberry.gitbook.io/rails-openapi-generator)
+> — installation, configuration, feature guides, and worked examples. This README is a quick reference only.
+
 ## Install
 
 ```ruby
