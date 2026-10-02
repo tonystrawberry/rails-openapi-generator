@@ -77,7 +77,7 @@ module RailsOpenapiGenerator
 
     def sort_by_method(operations)
       operations.keys.sort_by { |method| METHOD_ORDER.index(method) || METHOD_ORDER.size }
-                     .to_h { |method| [method, operations[method]] }
+                .to_h { |method| [method, operations[method]] }
     end
 
     def operation(endpoint)

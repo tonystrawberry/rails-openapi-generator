@@ -101,7 +101,8 @@ module RailsOpenapiGenerator
         node["$ref"] = "#/$defs/#{inline_target(ref, base_path, defs, stack)}" if file_ref?(ref)
         # Snapshot values so inlining (which adds keys to `defs`) cannot
         # mutate a hash mid-iteration when `node` is the `$defs` block.
-        node.values.each { |value| inline_file_refs(value, base_path, defs, stack) }
+        values = node.values
+        values.each { |value| inline_file_refs(value, base_path, defs, stack) }
       when Array
         node.each { |value| inline_file_refs(value, base_path, defs, stack) }
       end

@@ -18,6 +18,10 @@ RSpec.describe RailsOpenapiGenerator::SchemaSidecarLoader do
     path
   end
 
+  def write_schema(name, schema)
+    write(name, JSON.generate(schema))
+  end
+
   describe "#for_jbuilder" do
     it "returns the sibling sidecar's parsed contents when present" do
       jbuilder = write("_user.json.jbuilder", "json.id user.id")
@@ -60,18 +64,18 @@ RSpec.describe RailsOpenapiGenerator::SchemaSidecarLoader do
     subject(:loader) { described_class.new(report: report, views_root: tmp_root) }
 
     it "inlines a file-path ref under `$defs` and rewrites it to `#/$defs/<Name>`" do
-      write("_image.schema.json", JSON.generate(
-        "$schema" => "https://json-schema.org/draft/2020-12/schema",
-        "type" => "object",
-        "properties" => { "id" => { "type" => "integer" } }
-      ))
+      write_schema("_image.schema.json", {
+                     "$schema" => "https://json-schema.org/draft/2020-12/schema",
+                     "type" => "object",
+                     "properties" => { "id" => { "type" => "integer" } }
+                   })
       jbuilder = write("show.json.jbuilder", "json.id 1")
-      write("show.schema.json", JSON.generate(
-        "type" => "object",
-        "properties" => {
-          "images" => { "type" => "array", "items" => { "$ref" => "_image.schema.json" } }
-        }
-      ))
+      write_schema("show.schema.json", {
+                     "type" => "object",
+                     "properties" => {
+                       "images" => { "type" => "array", "items" => { "$ref" => "_image.schema.json" } }
+                     }
+                   })
 
       result = loader.for_jbuilder(jbuilder)
 
@@ -85,12 +89,18 @@ RSpec.describe RailsOpenapiGenerator::SchemaSidecarLoader do
       FileUtils.mkdir_p(File.join(tmp_root, "api/maisokus"))
       File.write(File.join(tmp_root, "api/maisokus/_positioned_element.schema.json"),
                  JSON.generate("type" => "object", "properties" => { "x" => { "type" => "number" } }))
-      File.write(File.join(tmp_root, "api/maisokus/show.schema.json"), JSON.generate(
-        "type" => "object",
-        "properties" => {
-          "els" => { "type" => "array", "items" => { "$ref" => "api/maisokus/_positioned_element.schema.json" } }
-        }
-      ))
+      File.write(
+        File.join(tmp_root, "api/maisokus/show.schema.json"),
+        JSON.generate(
+          "type" => "object",
+          "properties" => {
+            "els" => {
+              "type" => "array",
+              "items" => { "$ref" => "api/maisokus/_positioned_element.schema.json" }
+            }
+          }
+        )
+      )
 
       result = loader.for_view(tmp_root, "api/maisokus", "show")
 
@@ -101,13 +111,13 @@ RSpec.describe RailsOpenapiGenerator::SchemaSidecarLoader do
     it "reuses one `$defs` entry when the same file is referenced more than once" do
       write("_image.schema.json", JSON.generate("type" => "object"))
       jbuilder = write("show.json.jbuilder", "json.id 1")
-      write("show.schema.json", JSON.generate(
-        "type" => "object",
-        "properties" => {
-          "a" => { "$ref" => "_image.schema.json" },
-          "b" => { "$ref" => "_image.schema.json" }
-        }
-      ))
+      write_schema("show.schema.json", {
+                     "type" => "object",
+                     "properties" => {
+                       "a" => { "$ref" => "_image.schema.json" },
+                       "b" => { "$ref" => "_image.schema.json" }
+                     }
+                   })
 
       result = loader.for_jbuilder(jbuilder)
 
@@ -118,15 +128,15 @@ RSpec.describe RailsOpenapiGenerator::SchemaSidecarLoader do
 
     it "resolves nested file refs transitively" do
       write("_leaf.schema.json", JSON.generate("type" => "object", "properties" => { "v" => { "type" => "string" } }))
-      write("_branch.schema.json", JSON.generate(
-        "type" => "object",
-        "properties" => { "leaf" => { "$ref" => "_leaf.schema.json" } }
-      ))
+      write_schema("_branch.schema.json", {
+                     "type" => "object",
+                     "properties" => { "leaf" => { "$ref" => "_leaf.schema.json" } }
+                   })
       jbuilder = write("show.json.jbuilder", "json.id 1")
-      write("show.schema.json", JSON.generate(
-        "type" => "object",
-        "properties" => { "branch" => { "$ref" => "_branch.schema.json" } }
-      ))
+      write_schema("show.schema.json", {
+                     "type" => "object",
+                     "properties" => { "branch" => { "$ref" => "_branch.schema.json" } }
+                   })
 
       result = loader.for_jbuilder(jbuilder)
 
@@ -139,18 +149,24 @@ RSpec.describe RailsOpenapiGenerator::SchemaSidecarLoader do
 
     it "raises when a file ref cannot be resolved to an existing file" do
       jbuilder = write("show.json.jbuilder", "json.id 1")
-      write("show.schema.json", JSON.generate(
-        "type" => "object",
-        "properties" => { "missing" => { "$ref" => "_nope.schema.json" } }
-      ))
+      write_schema("show.schema.json", {
+                     "type" => "object",
+                     "properties" => { "missing" => { "$ref" => "_nope.schema.json" } }
+                   })
 
       expect { loader.for_jbuilder(jbuilder) }
         .to raise_error(RailsOpenapiGenerator::Error, /could not be resolved/)
     end
 
     it "raises on a circular file ref" do
-      write("_a.schema.json", JSON.generate("type" => "object", "properties" => { "b" => { "$ref" => "_b.schema.json" } }))
-      write("_b.schema.json", JSON.generate("type" => "object", "properties" => { "a" => { "$ref" => "_a.schema.json" } }))
+      write_schema("_a.schema.json", {
+                     "type" => "object",
+                     "properties" => { "b" => { "$ref" => "_b.schema.json" } }
+                   })
+      write_schema("_b.schema.json", {
+                     "type" => "object",
+                     "properties" => { "a" => { "$ref" => "_a.schema.json" } }
+                   })
       jbuilder = write("_a.json.jbuilder", "json.id 1")
 
       expect { loader.for_jbuilder(jbuilder) }
